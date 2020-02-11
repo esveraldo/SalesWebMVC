@@ -22,6 +22,8 @@ namespace SalesWebMVC.Services
 
         public void insert(Seller obj)
         {
+            //USADO PARA EVITAR O ERRO NA INSERÇÃO DOS DADOS SEM A CHAVE ESTRANGEIRA
+            obj.Departament = _context.Departament.First();
             _context.Add(obj);
             _context.SaveChanges();
         }
