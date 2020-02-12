@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,13 @@ namespace SalesWebMVC.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(Seller seller)
         {
+            //VALIDAÇÃO DO LADO DO SERVIDOR, QUANDO JAVASCRIPT ESTIVER DESABILITADO
+            if (!ModelState.IsValid)
+            {
+                var departamens = _departamentService.FindAll();
+                var viewModel = new SellerFormViewModel { Seller = seller, Departaments = departamens }
+                return View(viewModel);
+            }
             _sellerService.insert(seller);
             return RedirectToAction(nameof(Index));
         }
@@ -45,12 +53,12 @@ namespace SalesWebMVC.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new {  message = "Id não encontrado!" });
             }
             var obj = _sellerService.FindById(id.Value);
             if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id não fornecido!" });
             }
 
             return View(obj);
@@ -67,12 +75,12 @@ namespace SalesWebMVC.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id não encontrado!" });
             }
             var obj = _sellerService.FindById(id.Value);
             if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id não fornecido!" });
             }
 
             return View(obj);
@@ -82,13 +90,13 @@ namespace SalesWebMVC.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id não encontrado!" });
             }
 
             var obj = _sellerService.FindById(id.Value);
             if (obj == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id não fornecido!" });
             }
 
             List<Departament> departaments = _departamentService.FindAll();
@@ -99,22 +107,41 @@ namespace SalesWebMVC.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int? id, Seller seller)
         {
+            //VALIDAÇÃO DO LADO DO SERVIDOR, QUANDO JAVASCRIPT ESTIVER DESABILITADO
+            if (!ModelState.IsValid)
+            {
+                var departamens = _departamentService.FindAll();
+                var viewModel = new SellerFormViewModel { Seller = seller, Departaments = departamens}
+                return View(viewModel);
+            }
+
             if (id != seller.Id)
             {
-                return BadRequest();
+                return RedirectToAction(nameof(Error), new { message = "Id não corresponde ao vendedor!" });
             }
             try
             {
                 _sellerService.Update(seller);
                 return RedirectToAction(nameof(Index));
             }
-            catch (NofFoundException)
+            catch (NofFoundException e)
             {
-                return NotFound();
-            }catch (DbConcurrencyException)
+                return RedirectToAction(nameof(Error), new { message = e.Message });
+            }
+            catch (DbConcurrencyException e)
             {
-                return BadRequest();
+                return RedirectToAction(nameof(Error), new { message = e.Message });
             }
         }
+
+        public IActionResult Error(string message)
+        {
+            var viewModel = new ErrorViewModel
+            {
+                Message = message,
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            };
+            return View(viewModel);
+        }
     }
-    }
+}
